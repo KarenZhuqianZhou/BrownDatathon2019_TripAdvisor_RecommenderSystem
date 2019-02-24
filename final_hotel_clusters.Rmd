@@ -1,0 +1,65 @@
+---
+title: "final_hotel_clusters"
+author: "kimp"
+date: "2/24/2019"
+output: html_document
+---
+
+0. Load Libraries
+```{r library}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+1. Import Hotel Data
+```{r data}
+hot <- read.csv("DataFromTripAdvisor/hotel_data.csv") # read original data set
+```
+
+2. Pre-Processing
+
+```{r prep}
+h.df <- select(hot, c("hotel_name", "star_rating","bubble_score", "review_count"))
+h.df <- h.df[!duplicated(h.df$hotel_name),]
+rownames(h.df) < -h.df$hotel_name
+h.df2 < -h.df
+h.df2$hotel_name <- NULL
+```
+
+```{r scale}
+h.df3 <- scale(h.df2)
+h.df3[is.na(h.df3)] <- 0
+```
+
+3. Check Desirable Number of Clusters
+
+Elbow Method
+
+```{r elbow method}
+set.seed(234)
+# Compute and plot wss for k = 2 to k = 15.
+k.max <- 15
+data <- h.df3
+wss <- sapply(1:k.max,
+            function(k){kmeans(data, k, nstart=50,iter.max = 15 )$tot.withinss})
+wss
+plot(1:k.max, wss,
+   type="b", pch = 19, frame = FALSE,
+   xlab="Number of clusters K",
+   ylab="Total within-clusters sum of squares")
+```
+
+4. Run K Means 
+```{r k means}
+h.fit<-kmeans(h.df3, 3)
+```
+
+5. Add fitted values to final data
+```{r fitted values}
+hotel_df <- data.frame(h.df2, h.fit$cluster)
+head(user_df)
+```
+
+
+
