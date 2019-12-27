@@ -1,0 +1,72 @@
+---
+title: "final_user_clusters"
+author: "kimp"
+date: "2/23/2019"
+output: html_document
+---
+
+0. Load Libraries
+```{r library}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+1. Import User Activity Data
+```{r data}
+act <- read.csv("DataFromTripAdvisor/activity_data.csv") # read original data set
+```
+
+2. Pre-Processing
+```{r count and spread "user_action"}
+u.df <- act %>% group_by(user_id, user_action) %>% count() # count user_action
+u.df2 <- spread(u.df, user_action, n, fill=0) # spread user_action
+colnames(u.df2) <- c("user_id", "click_booking", "click_hotel_website", "click_price", "click_view") # rename columns
+u.df2[duplicated(u.df2$user_id),] # check duplicate rows
+u.df3 <- ungroup(u.df2) %>% select(-user_id)
+```
+
+```{r scale data}
+u.df4 <- scale(u.df3)
+```
+
+3. Check Desirable Number of Clusters
+
+Method 1: Elbow Plot
+Source: https://www.r-bloggers.com/finding-optimal-number-of-clusters/
+
+```{r elbow plot}
+#Elbow Method for finding the optimal number of clusters
+set.seed(123)
+# Compute and plot wss for k = 2 to k = 15.
+k.max <- 15
+data <- u.df4
+wss <- sapply(1:k.max, 
+              function(k){kmeans(data, k, nstart=50,iter.max = 15 )$tot.withinss})
+wss
+plot(1:k.max, wss,
+     type="b", pch = 19, frame = FALSE, 
+     xlab="Number of clusters K",
+     ylab="Total within-clusters sum of squares")
+```
+
+Method 2: Bayesian Inference Criterion for k means
+Source: https://www.r-bloggers.com/finding-optimal-number-of-clusters/
+```{r bayesian inference criterion}
+library(mclust)
+d_clust <- Mclust(as.matrix(u.df4), G=1:15, 
+                  modelNames = mclust.options("emModelNames"))
+d_clust$BIC
+plot(d_clust)
+```
+
+4. Run K Means
+```{r k means}
+u.fit <- kmeans(u.df4, 5) 
+```
+
+5. Add fitted values to final data
+```{r fitted values}
+user_df <- data.frame(u.df2, u.fit$cluster)
+head(user_df)
+```
